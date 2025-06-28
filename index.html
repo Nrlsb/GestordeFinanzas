@@ -235,17 +235,14 @@
         </div>
     </div>
 
-    <!-- The core Firebase JS SDK is always required and must be listed first -->
     <script type="module">
-        // Encapsulate the entire script in an async function to allow top-level await and proper error handling.
         async function main() {
             // Firebase Imports
             const { initializeApp } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js");
             const { getAuth, signInAnonymously, onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js");
-            const { getFirestore, doc, setDoc, onSnapshot } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
+            const { getFirestore, doc, setDoc, getDoc, onSnapshot } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
 
             // --- Firebase Configuration ---
-            // IMPORTANTE: Reemplaza esto con la configuración de tu propio proyecto de Firebase.
             const firebaseConfig = {
                 apiKey: "AIzaSyDFxL7XtFW6grGP8mMkmI8cEyNO1ykiLDs",
                 authDomain: "gestordefinanzas-3660c.firebaseapp.com",
@@ -263,7 +260,7 @@
                 auth = getAuth(app);
                 db = getFirestore(app);
             } catch (e) {
-                console.error("Error al inicializar Firebase. ¿Pegaste tu configuración?", e);
+                console.error("Error initializing Firebase. Did you paste your config?", e);
                 document.getElementById('loading-overlay').innerHTML = '<p class="text-red-500 font-bold">Error de configuración de Firebase. Pega tus credenciales en el script y revisa la consola.</p>';
                 return; 
             }
@@ -307,7 +304,6 @@
             const editTotalInstallmentsInput = document.getElementById('editTotalInstallments');
             const editPaidInstallmentsInput = document.getElementById('editPaidInstallments');
 
-
             // Application State
             let transactions = [];
             let categories = {};
@@ -333,28 +329,15 @@
 
             function setupFirestoreListener() {
                 if (!userId) return;
+                if (dbUnsubscribe) dbUnsubscribe(); 
 
                 const userDocRef = doc(db, 'user-data', userId);
-                if (dbUnsubscribe) dbUnsubscribe();
-
                 dbUnsubscribe = onSnapshot(userDocRef, (docSnap) => {
-                    // If the document doesn't exist, create it and then simply return.
-                    // The listener will fire again once the document is created, and then the 'else' block will run.
                     if (!docSnap.exists()) {
-                        console.log("First-time user. Creating initial data structure in Firestore.");
-                        const initialCategories = {
-                            ingreso: ['Sueldo', 'Ventas', 'Inversiones', 'Regalo', 'Otros Ingresos'],
-                            egreso: ['Alquiler/Hipoteca', 'Comida', 'Transporte', 'Servicios (Luz, Agua, Gas)', 'Entretenimiento', 'Salud', 'Educación', 'Ropa', 'Impuestos', 'Otros Gastos']
-                        };
-                        setDoc(userDocRef, { transactions: [], categories: initialCategories })
-                            .catch(err => {
-                                console.error("Error creating initial user document:", err);
-                                document.getElementById('loading-overlay').innerHTML = '<p class="text-red-500 font-bold">No se pudo crear el perfil de usuario. Intente recargar.</p>';
-                            });
-                        return; // IMPORTANT: Exit the callback here. The listener will re-fire.
+                         console.error("User document doesn't exist, this should have been created on auth.");
+                         return;
                     }
-
-                    // --- Document exists, proceed to load and render the app ---
+                    
                     const data = docSnap.data();
                     transactions = data.transactions || [];
                     const defaultCategories = {
@@ -684,10 +667,29 @@
             window.onclick = (event) => { if (event.target == editModal) closeEditModal(); }
 
             // Main entry point
-            onAuthStateChanged(auth, (user) => {
+            onAuthStateChanged(auth, async (user) => {
                 if (user) {
                     userId = user.uid;
-                    setupFirestoreListener();
+                    const userDocRef = doc(db, 'user-data', userId);
+
+                    try {
+                        const docSnap = await getDoc(userDocRef);
+
+                        if (!docSnap.exists()) {
+                            console.log("First-time user. Creating initial data document.");
+                            const initialCategories = {
+                                ingreso: ['Sueldo', 'Ventas', 'Inversiones', 'Regalo', 'Otros Ingresos'],
+                                egreso: ['Alquiler/Hipoteca', 'Comida', 'Transporte', 'Servicios (Luz, Agua, Gas)', 'Entretenimiento', 'Salud', 'Educación', 'Ropa', 'Impuestos', 'Otros Gastos']
+                            };
+                            await setDoc(userDocRef, { transactions: [], categories: initialCategories });
+                        }
+                        
+                        setupFirestoreListener();
+
+                    } catch (error) {
+                        console.error("Error initializing user data:", error);
+                        document.getElementById('loading-overlay').innerHTML = '<p class="text-red-500 font-bold">Error al inicializar datos de usuario.</p>';
+                    }
                 } else {
                     signInAnonymously(auth).catch((error) => {
                         console.error("Anonymous sign-in failed: ", error);
@@ -697,7 +699,6 @@
             });
         }
         
-        // Run the main application logic
         main().catch(error => {
             console.error("An unhandled error occurred in the main script:", error);
             document.getElementById('loading-overlay').innerHTML = '<p class="text-red-500 font-bold">Ocurrió un error inesperado al cargar la aplicación.</p>';
@@ -705,3 +706,4 @@
     </script>
 </body>
 </html>
+
