@@ -265,7 +265,6 @@
             } catch (e) {
                 console.error("Error al inicializar Firebase. ¿Pegaste tu configuración?", e);
                 document.getElementById('loading-overlay').innerHTML = '<p class="text-red-500 font-bold">Error de configuración de Firebase. Pega tus credenciales en el script y revisa la consola.</p>';
-                // Now this return is valid because it's inside the main() function
                 return; 
             }
 
@@ -339,32 +338,41 @@
                 if (dbUnsubscribe) dbUnsubscribe();
 
                 dbUnsubscribe = onSnapshot(userDocRef, (docSnap) => {
-                    if (docSnap.exists()) {
-                        const data = docSnap.data();
-                        transactions = data.transactions || [];
-                        categories = data.categories || {
+                    // If the document doesn't exist, create it and then simply return.
+                    // The listener will fire again once the document is created, and then the 'else' block will run.
+                    if (!docSnap.exists()) {
+                        console.log("First-time user. Creating initial data structure in Firestore.");
+                        const initialCategories = {
                             ingreso: ['Sueldo', 'Ventas', 'Inversiones', 'Regalo', 'Otros Ingresos'],
                             egreso: ['Alquiler/Hipoteca', 'Comida', 'Transporte', 'Servicios (Luz, Agua, Gas)', 'Entretenimiento', 'Salud', 'Educación', 'Ropa', 'Impuestos', 'Otros Gastos']
                         };
-                    } else {
-                        console.log("No data found for this user, creating a new document.");
-                        transactions = [];
-                        categories = {
-                            ingreso: ['Sueldo', 'Ventas', 'Inversiones', 'Regalo', 'Otros Ingresos'],
-                            egreso: ['Alquiler/Hipoteca', 'Comida', 'Transporte', 'Servicios (Luz, Agua, Gas)', 'Entretenimiento', 'Salud', 'Educación', 'Ropa', 'Impuestos', 'Otros Gastos']
-                        };
-                        saveDataToFirestore(); 
+                        setDoc(userDocRef, { transactions: [], categories: initialCategories })
+                            .catch(err => {
+                                console.error("Error creating initial user document:", err);
+                                document.getElementById('loading-overlay').innerHTML = '<p class="text-red-500 font-bold">No se pudo crear el perfil de usuario. Intente recargar.</p>';
+                            });
+                        return; // IMPORTANT: Exit the callback here. The listener will re-fire.
                     }
+
+                    // --- Document exists, proceed to load and render the app ---
+                    const data = docSnap.data();
+                    transactions = data.transactions || [];
+                    const defaultCategories = {
+                        ingreso: ['Sueldo', 'Ventas', 'Inversiones', 'Regalo', 'Otros Ingresos'],
+                        egreso: ['Alquiler/Hipoteca', 'Comida', 'Transporte', 'Servicios (Luz, Agua, Gas)', 'Entretenimiento', 'Salud', 'Educación', 'Ropa', 'Impuestos', 'Otros Gastos']
+                    };
+                    categories = data.categories || defaultCategories;
                     
+                    // Render the entire application
                     updateCategorySelectors();
                     renderTransactions();
 
+                    // Show the app and hide the loader
                     document.getElementById('app-content').classList.remove('hidden');
                     document.getElementById('loading-overlay').classList.add('hidden');
 
                 }, (error) => {
                     console.error("Error with Firestore listener: ", error);
-                    alert("No se pudo conectar a la base de datos. Revisa la consola.");
                     document.getElementById('loading-overlay').innerHTML = '<p class="text-red-500 font-bold">Error de conexión con la base de datos.</p>';
                 });
             }
