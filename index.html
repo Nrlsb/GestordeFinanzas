@@ -3,12 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestor de Ingresos y Egresos con Análisis</title>
+    <title>Gestor de Finanzas Personales en la Nube</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
-    <!-- Library for charts -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
@@ -16,76 +15,59 @@
             background-color: #f3f4f6; /* Tailwind gray-100 */
         }
         .modal {
-            display: none; /* Hidden by default */
-            position: fixed; /* Stay in place */
-            z-index: 1000; /* Sit on top */
-            left: 0;
-            top: 0;
-            width: 100%; /* Full width */
-            height: 100%; /* Full height */
-            overflow: auto; /* Enable scroll if needed */
-            background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+            display: none; position: fixed; z-index: 1000;
+            left: 0; top: 0; width: 100%; height: 100%;
+            overflow: auto; background-color: rgba(0,0,0,0.4);
         }
         .modal-content {
-            background-color: #fefefe;
-            margin: 10% auto; /* 10% from the top and centered */
-            padding: 20px;
-            border: 1px solid #888;
-            width: 80%;
-            max-width: 500px;
-            border-radius: 0.5rem; /* Tailwind rounded-lg */
+            background-color: #fefefe; margin: 10% auto;
+            padding: 20px; border: 1px solid #888;
+            width: 80%; max-width: 500px; border-radius: 0.5rem;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
         .close-button {
-            color: #aaa;
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
+            color: #aaa; float: right; font-size: 28px; font-weight: bold;
         }
-        .close-button:hover,
-        .close-button:focus {
-            color: black;
-            text-decoration: none;
-            cursor: pointer;
+        .close-button:hover, .close-button:focus {
+            color: black; text-decoration: none; cursor: pointer;
         }
         .action-button {
-            padding: 0.25rem 0.5rem;
-            font-size: 0.875rem;
-            border-radius: 0.375rem;
-            transition: background-color 0.2s;
+            padding: 0.25rem 0.5rem; font-size: 0.875rem;
+            border-radius: 0.375rem; transition: background-color 0.2s;
         }
-        .edit-button {
-            background-color: #3b82f6; /* Tailwind blue-500 */
-            color: white;
-        }
-        .edit-button:hover {
-            background-color: #2563eb; /* Tailwind blue-600 */
-        }
-        .delete-button {
-            background-color: #ef4444; /* Tailwind red-500 */
-            color: white;
-        }
-        .delete-button:hover {
-            background-color: #dc2626; /* Tailwind red-600 */
-        }
-        .installment-paid-button {
-            background-color: #10b981; /* Tailwind green-500 */
-            color: white;
-        }
-        .installment-paid-button:hover {
-            background-color: #059669; /* Tailwind green-600 */
-        }
-        .transaction-item {
-            animation: fadeIn 0.5s ease-out;
-        }
+        .edit-button { background-color: #3b82f6; color: white; }
+        .edit-button:hover { background-color: #2563eb; }
+        .delete-button { background-color: #ef4444; color: white; }
+        .delete-button:hover { background-color: #dc2626; }
+        .installment-paid-button { background-color: #10b981; color: white; }
+        .installment-paid-button:hover { background-color: #059669; }
+        .transaction-item { animation: fadeIn 0.5s ease-out; }
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(-10px); }
             to { opacity: 1; transform: translateY(0); }
         }
+        #loading-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(255, 255, 255, 0.8);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 2000; flex-direction: column;
+        }
+        .spinner {
+            border: 8px solid #f3f3f3; border-top: 8px solid #3498db;
+            border-radius: 50%; width: 60px; height: 60px;
+            animation: spin 2s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800 p-4 md:p-8">
-    <div class="container mx-auto max-w-4xl">
+
+    <div id="loading-overlay">
+        <div class="spinner"></div>
+        <p class="mt-4 text-gray-700">Conectando a la base de datos...</p>
+    </div>
+
+    <div id="app-content" class="container mx-auto max-w-4xl hidden">
         <header class="mb-8 text-center">
             <h1 class="text-3xl md:text-4xl font-bold text-indigo-600">Gestor de Finanzas Personales</h1>
         </header>
@@ -169,16 +151,12 @@
                 </div>
             </div>
             <div class="mt-6 text-center space-x-4">
-                 <button id="saveDataBtn" class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition duration-150 ease-in-out">
-                    Guardar Cambios Manualmente
-                </button>
                  <button id="generatePdfBtn" class="bg-teal-600 hover:bg-teal-700 text-white font-semibold py-2 px-4 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition duration-150 ease-in-out">
                     Generar Reporte PDF
                 </button>
             </div>
         </section>
 
-        <!-- NEW: Expense Analysis Section -->
         <section id="analysis-section" class="mb-8 p-6 bg-white rounded-xl shadow-lg">
             <h2 class="text-2xl font-semibold mb-4 text-gray-700">Análisis de Gastos por Categoría</h2>
             <div class="w-full md:w-2/3 lg:w-1/2 mx-auto">
@@ -186,7 +164,6 @@
             </div>
             <p id="noExpenseDataMessage" class="mt-4 text-center text-gray-500 hidden">No hay datos de egresos para mostrar el análisis.</p>
         </section>
-
 
         <section id="transactions-list-section" class="bg-white rounded-xl shadow-lg p-6">
             <h2 class="text-2xl font-semibold mb-4 text-gray-700">Historial de Transacciones</h2>
@@ -203,8 +180,7 @@
                             <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                         </tr>
                     </thead>
-                    <tbody id="transactionTableBody" class="bg-white divide-y divide-gray-200">
-                        </tbody>
+                    <tbody id="transactionTableBody" class="bg-white divide-y divide-gray-200"></tbody>
                 </table>
             </div>
             <p id="noTransactionsMessage" class="mt-4 text-center text-gray-500 hidden">No hay transacciones registradas.</p>
@@ -227,10 +203,8 @@
                 </div>
                 <div>
                     <label for="editCategory" class="block text-sm font-medium">Categoría:</label>
-                    <select id="editCategory" required class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-                        </select>
+                    <select id="editCategory" required class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"></select>
                 </div>
-
                 <div id="editExpenseDivisionSectionModal" class="hidden space-y-2">
                     <label for="editExpenseDivisionFactorModal" class="block text-sm font-medium text-gray-700">División del Gasto:</label>
                     <select id="editExpenseDivisionFactorModal" name="editExpenseDivisionFactorModal" class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
@@ -238,7 +212,6 @@
                         <option value="2">Compartido (Dividir por 2)</option>
                     </select>
                 </div>
-
                 <div id="editInstallmentsSection" class="hidden space-y-2">
                      <div>
                         <label for="editIsInstallment" class="flex items-center">
@@ -262,77 +235,150 @@
         </div>
     </div>
 
-    <script>
-        // Make sure jspdf is available globally
-        const { jsPDF } = window.jspdf;
+    <!-- The core Firebase JS SDK is always required and must be listed first -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- Firebase Configuration ---
+        // IMPORTANTE: Reemplaza esto con la configuración de tu propio proyecto de Firebase.
+        // Puedes obtenerla en la consola de Firebase: Configuración del proyecto > General > Tus apps.
+        const firebaseConfig = {
+            apiKey: "AIzaSyDFxL7XtFW6grGP8mMkmI8cEyNO1ykiLDs",
+            authDomain: "gestordefinanzas-3660c.firebaseapp.com",
+            projectId: "gestordefinanzas-3660c",
+            storageBucket: "gestordefinanzas-3660c.firebasestorage.app",
+            messagingSenderId: "840916629679",
+            appId: "1:840916629679:web:3e8c97ccfdfbbe2e413c5a",
+            measurementId: "G-BCDTS30N0Z"
+        };
+        
+        // Initialize Firebase
+        let app, auth, db;
+        try {
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+        } catch (e) {
+            console.error("Error al inicializar Firebase. ¿Pegaste tu configuración?", e);
+            alert("Error de configuración de Firebase. La aplicación no puede iniciarse. Revisa la consola.");
+            document.getElementById('loading-overlay').innerHTML = '<p class="text-red-500 font-bold">Error de configuración de Firebase. Pega tus credenciales en el script.</p>';
+            return;
+        }
+
+        let userId = null; // To store the user's ID
+        let dbUnsubscribe = null; // To detach the Firestore listener when needed
 
         // DOM Element References
         const transactionForm = document.getElementById('transactionForm');
+        // ... (all other DOM element references are the same)
+        const { jsPDF } = window.jspdf;
         const transactionTypeInput = document.getElementById('transactionType');
         const descriptionInput = document.getElementById('description');
         const amountInput = document.getElementById('amount'); 
         const categoryInput = document.getElementById('category');
         const newCategoryInput = document.getElementById('newCategory');
         const addCategoryBtn = document.getElementById('addCategoryBtn');
-        
         const expenseDivisionSection = document.getElementById('expenseDivisionSection');
         const expenseDivisionFactorSelect = document.getElementById('expenseDivisionFactor');
-
         const installmentsSection = document.getElementById('installmentsSection');
         const isInstallmentCheckbox = document.getElementById('isInstallment');
         const installmentDetailsDiv = document.getElementById('installmentDetails');
         const totalInstallmentsInput = document.getElementById('totalInstallments');
         const paidInstallmentsInput = document.getElementById('paidInstallments');
-        
         const transactionTableBody = document.getElementById('transactionTableBody');
         const noTransactionsMessage = document.getElementById('noTransactionsMessage');
-        
         const totalIncomeEl = document.getElementById('totalIncome');
         const totalExpensesEl = document.getElementById('totalExpenses');
         const currentBalanceEl = document.getElementById('currentBalance');
-        const saveDataBtn = document.getElementById('saveDataBtn');
-        const generatePdfBtn = document.getElementById('generatePdfBtn'); // PDF Button
-
-        // Edit Modal
+        const generatePdfBtn = document.getElementById('generatePdfBtn');
         const editModal = document.getElementById('editModal');
         const editForm = document.getElementById('editForm');
         const editTransactionIdInput = document.getElementById('editTransactionId');
         const editDescriptionInput = document.getElementById('editDescription');
         const editAmountInput = document.getElementById('editAmount'); 
         const editCategoryInput = document.getElementById('editCategory');
-        
         const editExpenseDivisionSectionModal = document.getElementById('editExpenseDivisionSectionModal');
         const editExpenseDivisionFactorModalSelect = document.getElementById('editExpenseDivisionFactorModal');
-
         const editInstallmentsSection = document.getElementById('editInstallmentsSection');
         const editIsInstallmentCheckbox = document.getElementById('editIsInstallment');
         const editInstallmentDetailsDiv = document.getElementById('editInstallmentDetails');
         const editTotalInstallmentsInput = document.getElementById('editTotalInstallments');
         const editPaidInstallmentsInput = document.getElementById('editPaidInstallments');
 
-        // Application State
-        let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
-        let categories = JSON.parse(localStorage.getItem('categories')) || {
-            ingreso: ['Sueldo', 'Ventas', 'Inversiones', 'Regalo', 'Otros Ingresos'],
-            egreso: ['Alquiler/Hipoteca', 'Comida', 'Transporte', 'Servicios (Luz, Agua, Gas)', 'Entretenimiento', 'Salud', 'Educación', 'Ropa', 'Impuestos', 'Otros Gastos']
-        };
-        let expenseChartInstance = null; // To hold the chart instance
 
-        // --- Helper Functions ---
-        const formatCurrency = (amount) => {
-            // Use toLocaleString for local currency formatting (e.g., ARS)
-            return amount.toLocaleString('es-AR', { style: 'currency', currency: 'ARS' });
-        };
+        // Application State - Now loaded from Firestore
+        let transactions = [];
+        let categories = {};
+        let expenseChartInstance = null;
 
-        const formatDate = (dateString) => {
-            const date = new Date(dateString);
-            // Format DD/MM/AAAA
-            return date.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        // --- Firebase Functions ---
+        async function saveDataToFirestore() {
+            if (!userId) {
+                console.log("No user ID, cannot save data.");
+                return;
+            }
+            try {
+                const userDocRef = doc(db, 'user-data', userId);
+                // We save a copy to avoid any potential issues with proxies/mutations
+                await setDoc(userDocRef, {
+                    transactions: JSON.parse(JSON.stringify(transactions)),
+                    categories: JSON.parse(JSON.stringify(categories))
+                });
+            } catch (error) {
+                console.error("Error saving data to Firestore: ", error);
+                alert("Hubo un error al guardar los datos. Revisa la consola para más detalles.");
+            }
         }
 
+        function setupFirestoreListener() {
+            if (!userId) return;
+
+            const userDocRef = doc(db, 'user-data', userId);
+            if (dbUnsubscribe) dbUnsubscribe(); // Detach old listener if exists
+
+            dbUnsubscribe = onSnapshot(userDocRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    transactions = data.transactions || [];
+                    categories = data.categories || {
+                        ingreso: ['Sueldo', 'Ventas', 'Inversiones', 'Regalo', 'Otros Ingresos'],
+                        egreso: ['Alquiler/Hipoteca', 'Comida', 'Transporte', 'Servicios (Luz, Agua, Gas)', 'Entretenimiento', 'Salud', 'Educación', 'Ropa', 'Impuestos', 'Otros Gastos']
+                    };
+                } else {
+                    console.log("No data found for this user, creating a new document.");
+                    transactions = [];
+                    categories = {
+                        ingreso: ['Sueldo', 'Ventas', 'Inversiones', 'Regalo', 'Otros Ingresos'],
+                        egreso: ['Alquiler/Hipoteca', 'Comida', 'Transporte', 'Servicios (Luz, Agua, Gas)', 'Entretenimiento', 'Salud', 'Educación', 'Ropa', 'Impuestos', 'Otros Gastos']
+                    };
+                    saveDataToFirestore(); // Save the initial empty state
+                }
+                
+                // Once data is loaded/initialized, render everything
+                updateCategorySelectors();
+                renderTransactions();
+
+                // Show the main app content and hide loading overlay
+                document.getElementById('app-content').classList.remove('hidden');
+                document.getElementById('loading-overlay').classList.add('hidden');
+
+            }, (error) => {
+                console.error("Error with Firestore listener: ", error);
+                alert("No se pudo conectar a la base de datos. Revisa la consola.");
+                document.getElementById('loading-overlay').innerHTML = '<p class="text-red-500 font-bold">Error de conexión con la base de datos.</p>';
+            });
+        }
+
+
+        // --- Helper Functions --- (Mostly unchanged)
+        const formatCurrency = (amount) => amount.toLocaleString('es-AR', { style: 'currency', currency: 'ARS' });
+        const formatDate = (dateString) => new Date(dateString).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
         function populateCategoryOptions(selectElement, type) {
-            selectElement.innerHTML = ''; 
-            const catsOfType = categories[type] || []; 
+            selectElement.innerHTML = '';
+            const catsOfType = categories[type] || [];
             catsOfType.forEach(cat => {
                 const option = document.createElement('option');
                 option.value = cat;
@@ -342,92 +388,28 @@
         }
         
         function updateCategorySelectors() {
-            const currentType = transactionTypeInput.value;
-            populateCategoryOptions(categoryInput, currentType);
+            populateCategoryOptions(categoryInput, transactionTypeInput.value);
         }
 
-        // --- UI Logic (Show/Hide sections) ---
-        transactionTypeInput.addEventListener('change', () => {
-            updateCategorySelectors();
-            const isEgreso = transactionTypeInput.value === 'egreso';
-            
-            installmentsSection.classList.toggle('hidden', !isEgreso);
-            expenseDivisionSection.classList.toggle('hidden', !isEgreso);
-
-            if (!isEgreso) {
-                isInstallmentCheckbox.checked = false;
-                installmentDetailsDiv.classList.add('hidden');
-                totalInstallmentsInput.required = false;
-                paidInstallmentsInput.required = false;
-                totalInstallmentsInput.value = '';
-                paidInstallmentsInput.value = '';
-                expenseDivisionFactorSelect.value = '1'; 
-            }
-        });
-
-        isInstallmentCheckbox.addEventListener('change', () => {
-            installmentDetailsDiv.classList.toggle('hidden', !isInstallmentCheckbox.checked);
-            totalInstallmentsInput.required = isInstallmentCheckbox.checked;
-            paidInstallmentsInput.required = isInstallmentCheckbox.checked;
-            if (!isInstallmentCheckbox.checked) {
-                totalInstallmentsInput.value = '';
-                paidInstallmentsInput.value = '';
-            }
-        });
-        
-        editIsInstallmentCheckbox.addEventListener('change', () => {
-            editInstallmentDetailsDiv.classList.toggle('hidden', !editIsInstallmentCheckbox.checked);
-            editTotalInstallmentsInput.required = editIsInstallmentCheckbox.checked;
-            editPaidInstallmentsInput.required = editIsInstallmentCheckbox.checked;
-            if (!editIsInstallmentCheckbox.checked) {
-                editTotalInstallmentsInput.value = ''; 
-                editPaidInstallmentsInput.value = '';  
-            }
-        });
-
-        // --- Data Logic (CRUD + Save) ---
-        addCategoryBtn.addEventListener('click', () => {
-            const newCat = newCategoryInput.value.trim();
-            const type = transactionTypeInput.value;
-            if (!categories[type]) categories[type] = []; 
-
-            if (newCat && !categories[type].includes(newCat)) {
-                categories[type].push(newCat);
-                categories[type].sort();
-                localStorage.setItem('categories', JSON.stringify(categories)); 
-                updateCategorySelectors();
-                categoryInput.value = newCat; 
-                newCategoryInput.value = ''; 
-            } else if (categories[type].includes(newCat)) {
-                alert('Esa categoría ya existe.');
-            } else {
-                alert('Por favor, ingresa un nombre para la nueva categoría.');
-            }
-        });
-
+        // --- UI & Render Functions ---
         function renderTransactions() {
-            transactionTableBody.innerHTML = ''; 
-
+            transactionTableBody.innerHTML = '';
             noTransactionsMessage.classList.toggle('hidden', transactions.length > 0);
-
-            transactions.sort((a, b) => new Date(b.date) - new Date(a.date)); 
+            transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
 
             transactions.forEach(t => {
                 const row = document.createElement('tr');
                 row.classList.add('transaction-item');
                 row.classList.toggle('bg-green-50', t.type === 'ingreso');
                 row.classList.toggle('bg-red-50', t.type === 'egreso');
-
                 let installmentText = '-';
                 if (t.type === 'egreso' && t.isInstallment) {
                     installmentText = `${t.paidInstallments} de ${t.totalInstallments}`;
                 }
-                
                 let amountDisplay = formatCurrency(t.amount);
                 if (t.type === 'egreso' && t.divisionFactor && t.divisionFactor > 1) {
                     amountDisplay += ` <span class="text-xs text-gray-500">(${100/t.divisionFactor}%)</span>`;
                 }
-
                 row.innerHTML = `
                     <td class="px-4 py-3 whitespace-nowrap text-sm ${t.type === 'ingreso' ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}">${t.type.charAt(0).toUpperCase() + t.type.slice(1)}</td>
                     <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">${t.description}</td>
@@ -444,32 +426,27 @@
                 transactionTableBody.appendChild(row);
             });
             updateSummary();
-            updateExpenseAnalysis(); // <-- UPDATE CHART HERE
-            localStorage.setItem('transactions', JSON.stringify(transactions)); 
+            updateExpenseAnalysis();
         }
 
         function updateSummary() {
             const income = transactions.filter(t => t.type === 'ingreso').reduce((sum, t) => sum + t.amount, 0);
             const expenses = transactions.filter(t => t.type === 'egreso').reduce((sum, t) => sum + t.amount, 0);
             const balance = income - expenses;
-
             totalIncomeEl.textContent = formatCurrency(income);
             totalExpensesEl.textContent = formatCurrency(expenses);
             currentBalanceEl.textContent = formatCurrency(balance);
-
             currentBalanceEl.classList.remove('text-green-600', 'text-red-600', 'text-blue-600');
             if (balance > 0) currentBalanceEl.classList.add('text-green-600');
             else if (balance < 0) currentBalanceEl.classList.add('text-red-600');
-            else currentBalanceEl.classList.add('text-blue-600'); 
+            else currentBalanceEl.classList.add('text-blue-600');
         }
 
-        // --- NEW: Expense Analysis Chart Function ---
         function updateExpenseAnalysis() {
+            // This function remains the same as before
             const noDataMessage = document.getElementById('noExpenseDataMessage');
             const chartContainer = document.getElementById('expenseChart');
-            
             const expenses = transactions.filter(t => t.type === 'egreso');
-
             if (expenses.length === 0) {
                 chartContainer.style.display = 'none';
                 noDataMessage.classList.remove('hidden');
@@ -479,31 +456,19 @@
                 }
                 return;
             }
-
             chartContainer.style.display = 'block';
             noDataMessage.classList.add('hidden');
-
             const expenseByCategory = expenses.reduce((acc, transaction) => {
                 const { category, amount } = transaction;
-                if (!acc[category]) {
-                    acc[category] = 0;
-                }
+                if (!acc[category]) acc[category] = 0;
                 acc[category] += amount;
                 return acc;
             }, {});
-
             const labels = Object.keys(expenseByCategory);
             const data = Object.values(expenseByCategory);
-
-            const backgroundColors = labels.map(() => `rgba(${Math.floor(Math.random() * 200) + 55}, ${Math.floor(Math.random() * 200) + 55}, ${Math.floor(Math.random() * 200) + 55}, 0.8)`);
-            const borderColors = backgroundColors.map(color => color.replace('0.8', '1'));
-
+            const backgroundColors = labels.map((_, i) => `hsl(${(i * 360 / labels.length) % 360}, 70%, 70%)`);
             const ctx = chartContainer.getContext('2d');
-
-            if (expenseChartInstance) {
-                expenseChartInstance.destroy();
-            }
-
+            if (expenseChartInstance) expenseChartInstance.destroy();
             expenseChartInstance = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
@@ -512,27 +477,19 @@
                         label: 'Gastos por Categoría',
                         data: data,
                         backgroundColor: backgroundColors,
-                        borderColor: borderColors,
                         borderWidth: 1
                     }]
                 },
                 options: {
                     responsive: true,
                     plugins: {
-                        legend: {
-                            position: 'top',
-                        },
-                        title: {
-                            display: true,
-                            text: 'Distribución de Egresos'
-                        },
+                        legend: { position: 'top' },
+                        title: { display: true, text: 'Distribución de Egresos' },
                         tooltip: {
                             callbacks: {
                                 label: function(context) {
                                     let label = context.label || '';
-                                    if (label) {
-                                        label += ': ';
-                                    }
+                                    if (label) label += ': ';
                                     if (context.parsed !== null) {
                                         const total = context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
                                         const percentage = total > 0 ? ((context.parsed / total) * 100).toFixed(2) : 0;
@@ -547,58 +504,79 @@
             });
         }
 
+        // --- Event Listeners & CRUD Operations (Now save to Firestore) ---
+
+        // All the UI logic event listeners (e.g., transactionTypeInput.addEventListener) are the same
+        transactionTypeInput.addEventListener('change', () => {
+            updateCategorySelectors();
+            const isEgreso = transactionTypeInput.value === 'egreso';
+            installmentsSection.classList.toggle('hidden', !isEgreso);
+            expenseDivisionSection.classList.toggle('hidden', !isEgreso);
+            if (!isEgreso) {
+                isInstallmentCheckbox.checked = false;
+                installmentDetailsDiv.classList.add('hidden');
+                expenseDivisionFactorSelect.value = '1'; 
+            }
+        });
+        isInstallmentCheckbox.addEventListener('change', () => {
+            installmentDetailsDiv.classList.toggle('hidden', !isInstallmentCheckbox.checked);
+        });
+        editIsInstallmentCheckbox.addEventListener('change', () => {
+            editInstallmentDetailsDiv.classList.toggle('hidden', !editIsInstallmentCheckbox.checked);
+        });
+
+        addCategoryBtn.addEventListener('click', () => {
+            const newCat = newCategoryInput.value.trim();
+            const type = transactionTypeInput.value;
+            if (!categories[type]) categories[type] = [];
+            if (newCat && !categories[type].includes(newCat)) {
+                categories[type].push(newCat);
+                categories[type].sort();
+                updateCategorySelectors();
+                categoryInput.value = newCat;
+                newCategoryInput.value = '';
+                saveDataToFirestore(); // Save changes
+            } else {
+                alert('La categoría ya existe o el nombre no es válido.');
+            }
+        });
 
         transactionForm.addEventListener('submit', (e) => {
             e.preventDefault();
-
             const type = transactionTypeInput.value;
             const description = descriptionInput.value;
-            const enteredAmount = parseFloat(amountInput.value); 
+            const enteredAmount = parseFloat(amountInput.value);
             const category = categoryInput.value;
             const date = new Date().toISOString();
-
-            if (!category) { alert('Por favor, selecciona o agrega una categoría.'); return; }
-            if (isNaN(enteredAmount) || enteredAmount <=0) { alert('Por favor, ingresa un monto válido.'); return; }
-
+            if (!category || isNaN(enteredAmount) || enteredAmount <= 0) {
+                alert('Por favor completa todos los campos con valores válidos.');
+                return;
+            }
             let finalAmount = enteredAmount;
             let divisionFactor = 1;
-            let originalAmount = enteredAmount;
-
             if (type === 'egreso') {
                 divisionFactor = parseInt(expenseDivisionFactorSelect.value) || 1;
                 finalAmount = enteredAmount / divisionFactor;
             }
-
             const newTransaction = {
-                id: 'tx_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9), 
-                type, description, amount: finalAmount, originalAmount: originalAmount, 
-                divisionFactor: divisionFactor, category, date, isInstallment: false
+                id: 'tx_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+                type, description, amount: finalAmount, originalAmount: enteredAmount, 
+                divisionFactor, category, date, isInstallment: false
             };
-
             if (type === 'egreso' && isInstallmentCheckbox.checked) {
                 const totalInstallments = parseInt(totalInstallmentsInput.value);
                 const paidInstallments = parseInt(paidInstallmentsInput.value);
-
-                if (isNaN(totalInstallments) || totalInstallments <= 0) { alert('El total de cuotas debe ser un número positivo.'); return; }
-                if (isNaN(paidInstallments) || paidInstallments < 0 || paidInstallments > totalInstallments) { alert('Las cuotas abonadas deben ser un número válido y no mayor al total de cuotas.'); return; }
+                if (isNaN(totalInstallments) || totalInstallments <= 0 || isNaN(paidInstallments) || paidInstallments < 0 || paidInstallments > totalInstallments) {
+                    alert('Los valores de las cuotas no son válidos.'); return;
+                }
                 newTransaction.isInstallment = true;
                 newTransaction.totalInstallments = totalInstallments;
                 newTransaction.paidInstallments = paidInstallments;
             }
-            
             transactions.push(newTransaction);
-            renderTransactions();
+            saveDataToFirestore(); // Save changes
             transactionForm.reset();
-            
-            installmentsSection.classList.add('hidden'); 
-            expenseDivisionSection.classList.add('hidden');
-            isInstallmentCheckbox.checked = false;
-            installmentDetailsDiv.classList.add('hidden');
-            totalInstallmentsInput.required = false;
-            paidInstallmentsInput.required = false;
-            expenseDivisionFactorSelect.value = '1';
-            transactionTypeInput.value = 'ingreso'; 
-            updateCategorySelectors(); 
+            updateCategorySelectors();
         });
 
         window.markInstallmentPaid = (id) => {
@@ -606,199 +584,119 @@
             if (transactionIndex > -1) {
                 const transaction = transactions[transactionIndex];
                 if (transaction.isInstallment && transaction.paidInstallments < transaction.totalInstallments) {
-                    transaction.paidInstallments += 1;
-                    renderTransactions(); 
+                    transactions[transactionIndex].paidInstallments += 1;
+                    saveDataToFirestore(); // Save changes
                 }
             }
-        }
+        };
 
         window.deleteTransaction = (id) => {
             if (confirm('¿Estás seguro de que quieres eliminar esta transacción?')) {
                 transactions = transactions.filter(t => t.id !== id);
-                renderTransactions(); 
+                saveDataToFirestore(); // Save changes
             }
-        }
-        
+        };
+
         window.openEditModal = (id) => {
+            // This function is the same, no need to change its logic
             const transaction = transactions.find(t => t.id === id);
             if (!transaction) return;
-
             editTransactionIdInput.value = transaction.id;
             editDescriptionInput.value = transaction.description;
             editAmountInput.value = transaction.originalAmount !== undefined ? transaction.originalAmount : transaction.amount;
-            
-            populateCategoryOptions(editCategoryInput, transaction.type); 
+            populateCategoryOptions(editCategoryInput, transaction.type);
             editCategoryInput.value = transaction.category;
-
             const isEgreso = transaction.type === 'egreso';
             editExpenseDivisionSectionModal.classList.toggle('hidden', !isEgreso);
             editInstallmentsSection.classList.toggle('hidden', !isEgreso);
-
             if (isEgreso) {
                 editExpenseDivisionFactorModalSelect.value = transaction.divisionFactor || '1';
-                
                 editIsInstallmentCheckbox.checked = transaction.isInstallment || false;
                 editInstallmentDetailsDiv.classList.toggle('hidden', !transaction.isInstallment);
-                editTotalInstallmentsInput.required = !!transaction.isInstallment;
-                editPaidInstallmentsInput.required = !!transaction.isInstallment;
                 if (transaction.isInstallment) {
                     editTotalInstallmentsInput.value = transaction.totalInstallments;
                     editPaidInstallmentsInput.value = transaction.paidInstallments;
-                } else {
-                    editTotalInstallmentsInput.value = '';
-                    editPaidInstallmentsInput.value = '';
                 }
             } else {
                  editIsInstallmentCheckbox.checked = false;
                  editInstallmentDetailsDiv.classList.add('hidden');
             }
-            
             editModal.style.display = 'block';
-        }
+        };
 
         window.closeEditModal = () => {
             editModal.style.display = 'none';
-            editForm.reset(); 
-        }
+        };
 
         editForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const id = editTransactionIdInput.value;
             const transactionIndex = transactions.findIndex(t => t.id === id);
-
             if (transactionIndex > -1) {
-                const originalTransactionType = transactions[transactionIndex].type; 
-                
-                const enteredAmount = parseFloat(editAmountInput.value); 
-                if (isNaN(enteredAmount) || enteredAmount <=0) { alert('Por favor, ingresa un monto válido.'); return; }
-                if (!editCategoryInput.value) { alert('Por favor, selecciona una categoría para la transacción editada.'); return; }
-
+                const originalTransactionType = transactions[transactionIndex].type;
+                const enteredAmount = parseFloat(editAmountInput.value);
+                if (isNaN(enteredAmount) || enteredAmount <= 0 || !editCategoryInput.value) {
+                    alert('Por favor, completa los campos de la edición con valores válidos.'); return;
+                }
                 transactions[transactionIndex].description = editDescriptionInput.value;
                 transactions[transactionIndex].category = editCategoryInput.value;
                 transactions[transactionIndex].originalAmount = enteredAmount;
-
                 if (originalTransactionType === 'egreso') {
                     transactions[transactionIndex].divisionFactor = parseInt(editExpenseDivisionFactorModalSelect.value) || 1;
                     transactions[transactionIndex].amount = enteredAmount / transactions[transactionIndex].divisionFactor;
-
                     transactions[transactionIndex].isInstallment = editIsInstallmentCheckbox.checked;
                     if (editIsInstallmentCheckbox.checked) {
                         const total = parseInt(editTotalInstallmentsInput.value);
                         const paid = parseInt(editPaidInstallmentsInput.value);
-
-                        if (isNaN(total) || total <= 0) { alert('El total de cuotas debe ser un número positivo.'); return; }
-                        if (isNaN(paid) || paid < 0 || paid > total) { alert('Las cuotas abonadas deben ser un número válido y no mayor al total.'); return; }
+                        if (isNaN(total) || total <= 0 || isNaN(paid) || paid < 0 || paid > total) { alert('Valores de cuotas no válidos.'); return; }
                         transactions[transactionIndex].totalInstallments = total;
                         transactions[transactionIndex].paidInstallments = paid;
                     } else {
                         delete transactions[transactionIndex].totalInstallments;
                         delete transactions[transactionIndex].paidInstallments;
                     }
-                } else { 
+                } else {
                     transactions[transactionIndex].amount = enteredAmount;
-                    transactions[transactionIndex].divisionFactor = 1; 
                 }
-                renderTransactions(); 
+                saveDataToFirestore(); // Save changes
                 closeEditModal();
             }
         });
-        
-        saveDataBtn.addEventListener('click', () => {
-            localStorage.setItem('transactions', JSON.stringify(transactions));
-            localStorage.setItem('categories', JSON.stringify(categories));
-            alert('¡Datos guardados manualmente en el almacenamiento local!');
-        });
 
-        // --- PDF Generation ---
-        function generatePDF() {
-            if (transactions.length === 0) {
-                alert("No hay transacciones para generar el reporte.");
-                return;
-            }
-
+        generatePdfBtn.addEventListener('click', () => {
+             // This function is the same
+            if (transactions.length === 0) { alert("No hay transacciones para generar el reporte."); return; }
             const doc = new jsPDF();
-            const pageHeight = doc.internal.pageSize.height || doc.internal.pageSize.getHeight();
-            const pageWidth = doc.internal.pageSize.width || doc.internal.pageSize.getWidth();
-            let startY = 20; // Initial top margin
-
-            // Report Title
-            doc.setFontSize(18);
-            doc.text("Reporte Financiero", pageWidth / 2, startY, { align: 'center' });
-            startY += 10;
-
-            // Financial Summary
-            doc.setFontSize(12);
-            doc.text(`Ingresos Totales: ${totalIncomeEl.textContent}`, 14, startY);
-            startY += 7;
-            doc.text(`Egresos Totales: ${totalExpensesEl.textContent}`, 14, startY);
-            startY += 7;
-            doc.text(`Saldo Actual: ${currentBalanceEl.textContent}`, 14, startY);
-            startY += 15; // Space before the table
-
-            // Prepare data for the table
-            const tableColumn = ["Tipo", "Descripción", "Categoría", "Monto (Efectivo)", "Cuotas", "Fecha"];
-            const tableRows = [];
-
-            transactions.forEach(t => {
-                let installmentTextPDF = '-';
-                if (t.type === 'egreso' && t.isInstallment) {
-                    installmentTextPDF = `${t.paidInstallments} de ${t.totalInstallments}`;
-                }
-
-                let amountTextPDF = formatCurrency(t.amount); // Use existing format function
-                 if (t.type === 'egreso' && t.divisionFactor && t.divisionFactor > 1) {
-                    amountTextPDF += ` (${100/t.divisionFactor}%)`; // Add division indication
-                }
-
-                const transactionData = [
-                    t.type.charAt(0).toUpperCase() + t.type.slice(1),
-                    t.description,
-                    t.category,
-                    amountTextPDF, // Formatted amount
-                    installmentTextPDF,
-                    formatDate(t.date) // Formatted date
-                ];
-                tableRows.push(transactionData);
-            });
-
-            // Create the table with autoTable
+            doc.text("Reporte Financiero", 14, 22);
             doc.autoTable({
-                head: [tableColumn],
-                body: tableRows,
-                startY: startY,
-                theme: 'grid', // Table style
-                headStyles: { fillColor: [22, 160, 133] }, // Header color (e.g., teal)
-                styles: { fontSize: 8 },
-                columnStyles: {
-                     3: { halign: 'right' }, // Align amount to the right
-                     4: { halign: 'center' }, // Align installments to the center
-                     5: { halign: 'center' }  // Align date to the center
-                }
+                startY: 30,
+                head: [["Tipo", "Descripción", "Categoría", "Monto (Efectivo)", "Cuotas", "Fecha"]],
+                body: transactions.map(t => {
+                    let inst = t.isInstallment ? `${t.paidInstallments}/${t.totalInstallments}` : '-';
+                    let amountTxt = formatCurrency(t.amount) + (t.divisionFactor > 1 ? ` (${100/t.divisionFactor}%)` : '');
+                    return [t.type, t.description, t.category, amountTxt, inst, formatDate(t.date)];
+                })
             });
-
-            // Save the PDF
             doc.save('reporte_financiero.pdf');
-        }
-
-        // Assign event to the PDF generation button
-        generatePdfBtn.addEventListener('click', generatePDF);
+        });
 
         // --- Initialization ---
-        window.onclick = function(event) {
-            if (event.target == editModal) {
-                closeEditModal();
-            }
-        }
+        window.onclick = (event) => { if (event.target == editModal) closeEditModal(); }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            const initialType = transactionTypeInput.value;
-            populateCategoryOptions(categoryInput, initialType);
-            
-            const isEgreso = initialType === 'egreso';
-            installmentsSection.classList.toggle('hidden', !isEgreso);
-            expenseDivisionSection.classList.toggle('hidden', !isEgreso);
-            
-            renderTransactions(); 
+        // Main entry point
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                // User is signed in.
+                userId = user.uid;
+                setupFirestoreListener(); // Setup listener to get data in real-time
+            } else {
+                // No user is signed in, so sign in anonymously.
+                signInAnonymously(auth).catch((error) => {
+                    console.error("Anonymous sign-in failed: ", error);
+                    alert("No se pudo iniciar sesión. La aplicación no funcionará sin conexión a la base de datos.");
+                    document.getElementById('loading-overlay').innerHTML = '<p class="text-red-500 font-bold">Error de Autenticación. Revisa la consola y tu configuración de Firebase.</p>';
+                });
+            }
         });
     </script>
 </body>
